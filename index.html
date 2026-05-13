@@ -52,9 +52,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .card-sub { font-size: 12px; color: var(--text3); }
 .card-row { display: flex; align-items: center; justify-content: space-between; }
 .badge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: .3px; }
-.badge-meal { background: #dbeafe; color: #1e40af; }
-.badge-baking { background: #fef3c7; color: #92400e; }
-.badge-snack { background: #f3e8ff; color: #6b21a8; }
+.badge-main { background: #dbeafe; color: #1e40af; }
+.badge-colazione { background: #fef3c7; color: #92400e; }
+.badge-spuntino { background: #f3e8ff; color: #6b21a8; }
 .macro-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .macro-chip { font-size: 11px; color: var(--text2); background: var(--bg3); padding: 3px 7px; border-radius: 20px; }
 .macro-chip span { font-weight: 600; color: var(--text); }
@@ -263,7 +263,7 @@ let ingredients = [], recipes = [];
 // Form nuova ricetta
 let newRecipeIngredients = [];
 let newRecipeSteps = [];
-let newRecipeType = 'meal';
+let newRecipeType = 'main';
 let selectedIngId = null;
 let dragSrcIdx = null;
 
@@ -562,6 +562,17 @@ async function deleteIngrediente(id) {
 }
 
 // ── NUOVA RICETTA ─────────────────────────────────────────────────────────
+function saveRecipeFormState() {
+  return {
+    name: (document.getElementById('r-name') || {}).value || '',
+  };
+}
+
+function restoreRecipeFormState(s) {
+  if (!s) return;
+  const el = document.getElementById('r-name');
+  if (el) el.value = s.name;
+}
 function renderNuovaRicetta(c) {
   const m = calcMacros(newRecipeIngredients);
   c.innerHTML = `
@@ -576,9 +587,9 @@ function renderNuovaRicetta(c) {
       <div class="field">
         <label>Tipo</label>
         <div class="type-selector">
-          <button class="type-btn ${newRecipeType === 'meal'   ? 'active' : ''}" onclick="setRecipeType('meal')">🍽 Pasto</button>
-          <button class="type-btn ${newRecipeType === 'baking' ? 'active' : ''}" onclick="setRecipeType('baking')">🧁 Dolce</button>
-          <button class="type-btn ${newRecipeType === 'snack'  ? 'active' : ''}" onclick="setRecipeType('snack')">🥜 Snack</button>
+          <button class="type-btn ${newRecipeType === 'main'      ? 'active' : ''}" onclick="setRecipeType('main')">🍽 Pasto</button>
+          <button class="type-btn ${newRecipeType === 'colazione' ? 'active' : ''}" onclick="setRecipeType('colazione')">☕ Colazione</button>
+          <button class="type-btn ${newRecipeType === 'spuntino'  ? 'active' : ''}" onclick="setRecipeType('spuntino')">🥜 Spuntino</button>
         </div>
       </div>
     </div>
@@ -674,8 +685,10 @@ function renderStepItem(s, idx) {
 }
 
 function setRecipeType(t) {
+  const state = saveRecipeFormState();
   newRecipeType = t;
   renderNuovaRicetta(document.getElementById('content'));
+  restoreRecipeFormState(state);
 }
 
 function showIngDropdown() {
@@ -709,19 +722,25 @@ function addIngToRecipe() {
   const imp = parseFloat(document.getElementById('ing-imp').value);
   if (!selectedIngId) { showToast('Seleziona prima un ingrediente'); return; }
   if (!qty || qty <= 0) { showToast('Inserisci una quantità valida'); return; }
+  const state = saveRecipeFormState();
   newRecipeIngredients.push({ ingredient_id: selectedIngId, qty_g: qty, importance: imp });
   selectedIngId = null;
   renderNuovaRicetta(document.getElementById('content'));
+  restoreRecipeFormState(state);
 }
 
 function removeIngFromRecipe(idx) {
+  const state = saveRecipeFormState();
   newRecipeIngredients.splice(idx, 1);
   renderNuovaRicetta(document.getElementById('content'));
+  restoreRecipeFormState(state);
 }
 
 function addStep() {
+  const state = saveRecipeFormState();
   newRecipeSteps.push({ order: newRecipeSteps.length + 1, text: '', time_min: 0, notes: '' });
   renderNuovaRicetta(document.getElementById('content'));
+  restoreRecipeFormState(state);
   setTimeout(() => {
     const items = document.querySelectorAll('.step-text-input');
     if (items.length) items[items.length - 1].focus();
@@ -733,16 +752,20 @@ function updateStep(idx, key, val) {
 }
 
 function removeStep(idx) {
+  const state = saveRecipeFormState();
   newRecipeSteps.splice(idx, 1);
   newRecipeSteps.forEach((s, i) => s.order = i + 1);
   renderNuovaRicetta(document.getElementById('content'));
+  restoreRecipeFormState(state);
 }
 
 function dupStep(idx) {
+  const state = saveRecipeFormState();
   const copy = { ...newRecipeSteps[idx] };
   newRecipeSteps.splice(idx + 1, 0, copy);
   newRecipeSteps.forEach((s, i) => s.order = i + 1);
   renderNuovaRicetta(document.getElementById('content'));
+  restoreRecipeFormState(state);
 }
 
 function initDragDrop() {
