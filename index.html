@@ -274,13 +274,19 @@ let scalabile = true;
 
 // ── COSTANTI ──────────────────────────────────────────────────────────────
 const GROUPS = [
-  { id: 'structure', label: 'Structure', emoji: '🧱', desc: 'Dà forma e consistenza. Base del piatto. Es: farine, avena, uova.' },
-  { id: 'liquid',    label: 'Liquid',    emoji: '💧', desc: 'Idrata e influenza morbidezza. Es: latte, acqua, yogurt, albumi.' },
-  { id: 'fat',       label: 'Fat',       emoji: '🧈', desc: 'Morbidezza e texture. Es: olio, burro, frutta secca.' },
-  { id: 'sweetener', label: 'Sweetener', emoji: '🍯', desc: 'Dolcezza, spesso influenza struttura. Es: zucchero, miele, banana.' },
-  { id: 'protein',   label: 'Protein',   emoji: '🍗', desc: 'Contribuisce a struttura o nutrizione. Es: carne, uova, whey.' },
-  { id: 'fiber',     label: 'Fiber',     emoji: '🌾', desc: 'Qualità nutrizionale, assorbe liquidi. Es: farina integrale, avena, legumi.' },
-  { id: 'leavening', label: 'Leavening', emoji: '🧪', desc: 'Fa crescere il volume. Quasi sempre non scalabile. Es: lievito, bicarbonato.' },
+  { id: 'structure',  label: 'Struttura',    emoji: '🧱', desc: 'Dà forma e consistenza alla ricetta. Es: farine, avena, uova, proteine in polvere.' },
+  { id: 'liquid',     label: 'Liquido',      emoji: '💧', desc: 'Idrata e influenza la morbidezza. Es: acqua, latte, yogurt, albumi.' },
+  { id: 'fat',        label: 'Grasso',       emoji: '🧈', desc: 'Morbidezza, sapore e texture. Es: olio, burro, frutta secca.' },
+  { id: 'sweetener',  label: 'Dolcificante', emoji: '🍯', desc: 'Aggiunge dolcezza, spesso influenza anche la struttura. Es: zucchero, miele, sciroppi.' },
+  { id: 'protein',    label: 'Proteina',     emoji: '🍗', desc: 'Contribuisce a struttura o apporto proteico. Es: carne, pesce, uova, whey.' },
+  { id: 'fiber',      label: 'Fibra',        emoji: '🌾', desc: 'Migliora la qualità nutrizionale e assorbe liquidi. Es: farina integrale, avena, legumi.' },
+  { id: 'leavening',  label: 'Lievitante',   emoji: '🧪', desc: 'Fa crescere il volume. Molto sensibile, quasi sempre non scalabile. Es: lievito, bicarbonato.' },
+  { id: 'vegetable',  label: 'Verdura',      emoji: '🥦', desc: 'Verdure e ortaggi. Aggiungono volume, micronutrienti e idratazione. Es: zucchina, spinaci, carota.' },
+  { id: 'fruit',      label: 'Frutta',       emoji: '🍎', desc: 'Frutta fresca. Dolcezza naturale, liquidi e fibre. Es: banana, mela, frutti di bosco.' },
+  { id: 'seasoning',  label: 'Condimento',   emoji: '🧂', desc: 'Aromi, spezie e condimenti. Importanza quasi sempre bassa. Es: sale, pepe, curcuma, erbe.' },
+  { id: 'dairy',      label: 'Latticino',    emoji: '🥛', desc: 'Prodotti caseari, spesso anche liquido o grasso. Es: latte, yogurt, ricotta, formaggio.' },
+  { id: 'nut',        label: 'Frutta secca', emoji: '🌰', desc: 'Frutta secca e semi, spesso anche grasso o proteina. Es: mandorle, noci, semi di chia.' },
+  { id: 'carb',       label: 'Carboidrato',  emoji: '🍝', desc: 'Carboidrati complessi cotti. Es: pasta, riso, pane, patate.' },
 ];
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
