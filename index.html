@@ -843,6 +843,11 @@ function renderNuovoIngrediente(c) {
 
     <div class="form-section">
       <div class="form-section-title">Gruppi (opzionale)</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5">
+        I gruppi descrivono il <strong>ruolo</strong> dell'ingrediente nella ricetta, non la sua composizione nutrizionale. 
+        Selezionali manualmente in base a come viene usato l'ingrediente. 
+        Un ingrediente può avere più gruppi — es. uovo → structure + protein + liquid.
+      </p>
       <div class="groups-wrap" id="groups-chips">
         ${GROUPS.map(g => `
           <button class="group-chip ${editingGroups.includes(g.id) ? 'active' : ''}"
@@ -880,21 +885,6 @@ function renderNuovoIngrediente(c) {
       </div>
     </div>
 
-    <div class="form-section">
-      <div class="form-section-title">Unità di misura (opzionale)</div>
-      <div id="units-list">
-        ${units.map((u, idx) => `
-          <div class="unit-row">
-            <input type="text"   placeholder="Es. 1 uovo"  value="${u.name}"  oninput="updateUnit(${idx},'name',this.value)">
-            <input type="number" placeholder="g"           value="${u.grams}" oninput="updateUnit(${idx},'grams',+this.value)" style="width:80px">
-            <button class="unit-remove" onclick="removeUnit(${idx})">×</button>
-          </div>`).join('')}
-      </div>
-      <button class="btn btn-ghost" style="margin-top:6px" onclick="addUnit()">
-        ${svgIcon('plus')} Aggiungi unità
-      </button>
-    </div>
-
     <button class="btn btn-primary" onclick="saveIngrediente()">Salva ingrediente</button>
   `;
 }
@@ -923,31 +913,7 @@ function onMacroChange() {
   const P = parseFloat(document.getElementById('i-P').value) || 0;
   const C = parseFloat(document.getElementById('i-C').value) || 0;
   const F = parseFloat(document.getElementById('i-F').value) || 0;
-  // auto-calcolo kcal
   document.getElementById('i-kcal').value = ((P * 4) + (C * 4) + (F * 9)).toFixed(1);
-  // auto-gruppi
-  if (F >= 0.5  && !editingGroups.includes('fat'))       { editingGroups.push('fat'); }
-  if (C >= 20   && !editingGroups.includes('structure'))  { editingGroups.push('structure'); }
-  if (P >= 10   && !editingGroups.includes('protein'))    { editingGroups.push('protein'); }
-  // aggiorna chip visivamente senza re-render completo
-  document.querySelectorAll('#groups-chips .group-chip').forEach(chip => {
-    const gid = chip.getAttribute('onclick').match(/'([^']+)'/)[1];
-    chip.classList.toggle('active', editingGroups.includes(gid));
-  });
-}
-
-function addUnit() {
-  units.push({ name: '', grams: '' });
-  renderNuovoIngrediente(document.getElementById('content'));
-}
-
-function removeUnit(idx) {
-  units.splice(idx, 1);
-  renderNuovoIngrediente(document.getElementById('content'));
-}
-
-function updateUnit(idx, key, val) {
-  if (units[idx]) units[idx][key] = val;
 }
 
 async function saveIngrediente() {
@@ -969,22 +935,18 @@ async function saveIngrediente() {
     showToast('ID già esistente, cambiane uno personalizzato'); return;
   }
 
-  const unitsObj = {};
-  units.forEach(u => { if (u.name && u.grams) unitsObj[u.name] = +u.grams; });
-
   const ing = {
     id,
     name,
-    protein_per_g:  P     / 100,
-    carbs_per_g:    C     / 100,
-    fat_per_g:      F     / 100,
-    kcal_per_g:     kcal  / 100,
-    fiber_per_g:    fiber / 100,
-    sugar_per_g:    sugar / 100,
+    protein_per_g:      P     / 100,
+    carbs_per_g:        C     / 100,
+    fat_per_g:          F     / 100,
+    kcal_per_g:         kcal  / 100,
+    fiber_per_g:        fiber / 100,
+    sugar_per_g:        sugar / 100,
     groups:             [...editingGroups],
     default_importance: parseFloat(document.getElementById('i-imp').value),
     default_scalable:   scalabile,
-    units:              unitsObj
   };
 
   await dbPut('ingredients', ing);
