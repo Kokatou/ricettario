@@ -960,8 +960,18 @@ async function saveIngrediente() {
 
   const customId = document.getElementById('i-id').value.trim();
   const id = customId || genId(name);
+
+  // check ID duplicato
   if (ingredients.find(i => i.id === id)) {
     showToast('ID già esistente, cambiane uno personalizzato'); return;
+  }
+
+  // check nome duplicato (case insensitive, ignora spazi)
+  const normalize = str => str.toLowerCase().replace(/\s+/g, '');
+  const normalizedNew = normalize(name);
+  const duplicate = ingredients.find(i => normalize(i.name) === normalizedNew);
+  if (duplicate) {
+    showToast(`⚠️ Esiste già "${duplicate.name}"`); return;
   }
 
   const ing = {
