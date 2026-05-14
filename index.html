@@ -996,9 +996,8 @@ function renderBackup(c) {
     <div class="page-header"><h1 class="page-title">Backup</h1></div>
 
     <div class="backup-section">
-      <h3>Esporta e aggiorna backup</h3>
-      <p>Seleziona i 2 file esistenti. L'app farà il merge con i dati attuali e scaricherà i file aggiornati. Se non hai ancora un backup, salta la selezione e premi direttamente Esporta.</p>
-
+      <h3>Esporta backup</h3>
+      <p>Seleziona i file esistenti se vuoi fare il merge, oppure premi direttamente Esporta per scaricare tutto.</p>
       <div class="field">
         <label>📄 File ingredienti esistente (opzionale)</label>
         <input type="file" id="file-ing-in" accept=".json">
@@ -1007,7 +1006,6 @@ function renderBackup(c) {
         <label>📄 File ricette esistente (opzionale)</label>
         <input type="file" id="file-ric-in" accept=".json">
       </div>
-
       <button class="btn btn-primary" style="margin-top:12px" onclick="exportMerged()">
         <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -1018,8 +1016,29 @@ function renderBackup(c) {
       </button>
     </div>
 
+    <div class="backup-section">
+      <h3>Importa su questo dispositivo</h3>
+      <p>Carica i file di backup per importare ricette e ingredienti. I dati esistenti non vengono cancellati — gli elementi con lo stesso ID vengono aggiornati, i nuovi vengono aggiunti.</p>
+      <div class="field">
+        <label>📄 File ingredienti da importare</label>
+        <input type="file" id="file-ing-import" accept=".json">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label>📄 File ricette da importare</label>
+        <input type="file" id="file-ric-import" accept=".json">
+      </div>
+      <button class="btn btn-ghost" style="margin-top:12px;width:100%" onclick="importData()">
+        <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Importa dati
+      </button>
+    </div>
+
     <div class="backup-section" style="background:var(--bg3)">
-      <h3>Riepilogo dati attuali</h3>
+      <h3>Dati attuali su questo dispositivo</h3>
       <p style="margin-bottom:0">
         <strong>${ingredients.length}</strong> ingredienti &nbsp;·&nbsp;
         <strong>${recipes.length}</strong> ricette salvate
@@ -1042,6 +1061,48 @@ async function exportMerged() {
       return [];
     }
   }
+  async function importData() {
+  const ingFile = document.getElementById('file-ing-import');
+  const ricFile = document.getElementById('file-ric-import');
+
+  if ((!ingFile || !ingFile.files[0]) && (!ricFile || !ricFile.files[0])) {
+    showToast('Seleziona almeno un file da importare');
+    return;
+  }
+
+  async function readJSON(input) {
+    if (!input || !input.files || !input.files[0]) return [];
+    try {
+      const text = await input.files[0].text();
+      const parsed = JSON.parse(text);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      showToast('❌ Errore lettura file — controllalo');
+      return [];
+    }
+  }
+
+  let addedI = 0, updatedI = 0, addedR = 0, updatedR = 0;
+
+  const importedIngredients = await readJSON(ingFile);
+  for (const ing of importedIngredients) {
+    const exists = ingredients.find(x => x.id === ing.id);
+    await dbPut('ingredients', ing);
+    if (exists) { Object.assign(exists, ing); updatedI++; }
+    else { ingredients.push(ing); addedI++; }
+  }
+
+  const importedRecipes = await readJSON(ricFile);
+  for (const r of importedRecipes) {
+    const exists = recipes.find(x => x.id === r.id);
+    await dbPut('recipes', r);
+    if (exists) { Object.assign(exists, r); updatedR++; }
+    else { recipes.push(r); addedR++; }
+  }
+
+  showToast(`✅ +${addedI} ing, +${addedR} ric · aggiornati ${updatedI + updatedR}`);
+  renderBackup(document.getElementById('content'));
+}
 
   // merge per id: il dato locale vince sul file
   function mergeById(fromFile, fromDB) {
