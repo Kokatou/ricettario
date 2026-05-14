@@ -1058,7 +1058,6 @@ function renderBackup(c) {
 }
 
 async function exportMerged() {
-  // legge file esistente se fornito, altrimenti usa array vuoto
   async function readFileJSON(inputId) {
     const input = document.getElementById(inputId);
     if (!input || !input.files || !input.files[0]) return [];
@@ -1071,6 +1070,56 @@ async function exportMerged() {
       return [];
     }
   }
+
+  const normalize = str => str.toLowerCase().replace(/\s+/g, '');
+
+  function mergeIngredients(fromFile, fromDB) {
+    const result = [...fromDB];
+    for (const fileIng of fromFile) {
+      const matchById   = result.find(x => x.id === fileIng.id);
+      const matchByName = result.find(x => normalize(x.name) === normalize(fileIng.name));
+      const match = matchById || matchByName;
+      if (!match) {
+        // non esiste nel db locale → aggiungilo
+        result.push(fileIng);
+      }
+      // esiste → vince il dato locale (fromDB), non fare nulla
+    }
+    return result;
+  }
+
+  function mergeRecipes(fromFile, fromDB) {
+    const result = [...fromDB];
+    for (const fileRec of fromFile) {
+      const match = result.find(x => x.id === fileRec.id);
+      if (!match) result.push(fileRec);
+      // esiste → vince il dato locale
+    }
+    return result;
+  }
+
+  function downloadJSON(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const oldIngredients = await readFileJSON('file-ing-in');
+  const oldRecipes     = await readFileJSON('file-ric-in');
+
+  const mergedIngredients = mergeIngredients(oldIngredients, ingredients);
+  const mergedRecipes     = mergeRecipes(oldRecipes, recipes);
+
+  downloadJSON(mergedIngredients, 'ricettario_ingredienti.json');
+  await new Promise(r => setTimeout(r, 400));
+  downloadJSON(mergedRecipes, 'ricettario_ricette.json');
+
+  showToast(`✅ Salvati: ${mergedIngredients.length} ing · ${mergedRecipes.length} ric`);
+}
   async function importData() {
   const ingFile = document.getElementById('file-ing-import');
   const ricFile = document.getElementById('file-ric-import');
@@ -1079,6 +1128,55 @@ async function exportMerged() {
     showToast('Seleziona almeno un file da importare');
     return;
   }
+
+  async function readJSON(input) {
+    if (!input || !input.files || !input.files[0]) return [];
+    try {
+      const text = await input.files[0].text();
+      const parsed = JSON.parse(text);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      showToast('❌ Errore lettura file — controllalo');
+      return [];
+    }
+  }
+
+  const normalize = str => str.toLowerCase().replace(/\s+/g, '');
+
+  let addedI = 0, updatedI = 0, addedR = 0, updatedR = 0;
+
+  const importedIngredients = await readJSON(ingFile);
+  for (const ing of importedIngredients) {
+    // cerca duplicato per ID o per nome normalizzato
+    const existsById   = ingredients.find(x => x.id === ing.id);
+    const existsByName = ingredients.find(x => normalize(x.name) === normalize(ing.name));
+    const exists = existsById || existsByName;
+
+    if (exists) {
+      // se trovato per nome ma id diverso, aggiorna anche l'id
+      const oldId = exists.id;
+      await dbPut('ingredients', { ...ing });
+      if (oldId !== ing.id) await dbDelete('ingredients', oldId);
+      Object.assign(exists, ing);
+      updatedI++;
+    } else {
+      await dbPut('ingredients', ing);
+      ingredients.push(ing);
+      addedI++;
+    }
+  }
+
+  const importedRecipes = await readJSON(ricFile);
+  for (const r of importedRecipes) {
+    const exists = recipes.find(x => x.id === r.id);
+    await dbPut('recipes', r);
+    if (exists) { Object.assign(exists, r); updatedR++; }
+    else { recipes.push(r); addedR++; }
+  }
+
+  showToast(`✅ +${addedI} ing, +${addedR} ric · aggiornati ${updatedI + updatedR}`);
+  renderBackup(document.getElementById('content'));
+}
 
   async function readJSON(input) {
     if (!input || !input.files || !input.files[0]) return [];
