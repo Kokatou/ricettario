@@ -1078,12 +1078,7 @@ async function exportMerged() {
     for (const fileIng of fromFile) {
       const matchById   = result.find(x => x.id === fileIng.id);
       const matchByName = result.find(x => normalize(x.name) === normalize(fileIng.name));
-      const match = matchById || matchByName;
-      if (!match) {
-        // non esiste nel db locale → aggiungilo
-        result.push(fileIng);
-      }
-      // esiste → vince il dato locale (fromDB), non fare nulla
+      if (!matchById && !matchByName) result.push(fileIng);
     }
     return result;
   }
@@ -1093,7 +1088,6 @@ async function exportMerged() {
     for (const fileRec of fromFile) {
       const match = result.find(x => x.id === fileRec.id);
       if (!match) result.push(fileRec);
-      // esiste → vince il dato locale
     }
     return result;
   }
@@ -1120,7 +1114,8 @@ async function exportMerged() {
 
   showToast(`✅ Salvati: ${mergedIngredients.length} ing · ${mergedRecipes.length} ric`);
 }
-  async function importData() {
+
+async function importData() {
   const ingFile = document.getElementById('file-ing-import');
   const ricFile = document.getElementById('file-ric-import');
 
@@ -1142,18 +1137,14 @@ async function exportMerged() {
   }
 
   const normalize = str => str.toLowerCase().replace(/\s+/g, '');
-
   let addedI = 0, updatedI = 0, addedR = 0, updatedR = 0;
 
   const importedIngredients = await readJSON(ingFile);
   for (const ing of importedIngredients) {
-    // cerca duplicato per ID o per nome normalizzato
     const existsById   = ingredients.find(x => x.id === ing.id);
     const existsByName = ingredients.find(x => normalize(x.name) === normalize(ing.name));
     const exists = existsById || existsByName;
-
     if (exists) {
-      // se trovato per nome ma id diverso, aggiorna anche l'id
       const oldId = exists.id;
       await dbPut('ingredients', { ...ing });
       if (oldId !== ing.id) await dbDelete('ingredients', oldId);
@@ -1176,104 +1167,6 @@ async function exportMerged() {
 
   showToast(`✅ +${addedI} ing, +${addedR} ric · aggiornati ${updatedI + updatedR}`);
   renderBackup(document.getElementById('content'));
-}
-
-  async function readJSON(input) {
-    if (!input || !input.files || !input.files[0]) return [];
-    try {
-      const text = await input.files[0].text();
-      const parsed = JSON.parse(text);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      showToast('❌ Errore lettura file — controllalo');
-      return [];
-    }
-  }
-
-  let addedI = 0, updatedI = 0, addedR = 0, updatedR = 0;
-
-  const importedIngredients = await readJSON(ingFile);
-  for (const ing of importedIngredients) {
-    const exists = ingredients.find(x => x.id === ing.id);
-    await dbPut('ingredients', ing);
-    if (exists) { Object.assign(exists, ing); updatedI++; }
-    else { ingredients.push(ing); addedI++; }
-  }
-
-  const importedRecipes = await readJSON(ricFile);
-  for (const r of importedRecipes) {
-    const exists = recipes.find(x => x.id === r.id);
-    await dbPut('recipes', r);
-    if (exists) { Object.assign(exists, r); updatedR++; }
-    else { recipes.push(r); addedR++; }
-  }
-
-  showToast(`✅ +${addedI} ing, +${addedR} ric · aggiornati ${updatedI + updatedR}`);
-  renderBackup(document.getElementById('content'));
-}
-
-  // merge per id: il dato locale vince sul file
-  function mergeById(fromFile, fromDB) {
-    const map = {};
-    fromFile.forEach(x => map[x.id] = x);
-    fromDB.forEach(x => map[x.id] = x); // sovrascrive con versione locale
-    return Object.values(map);
-  }
-
-  function downloadJSON(data, filename) {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  const oldIngredients = await readFileJSON('file-ing-in');
-  const oldRecipes     = await readFileJSON('file-ric-in');
-
-  const mergedIngredients = mergeById(oldIngredients, ingredients);
-  const mergedRecipes     = mergeById(oldRecipes, recipes);
-
-  downloadJSON(mergedIngredients, 'ricettario_ingredienti.json');
-  // piccolo delay per non bloccare il secondo download
-  await new Promise(r => setTimeout(r, 400));
-  downloadJSON(mergedRecipes, 'ricettario_ricette.json');
-
-  showToast(`✅ Salvati: ${mergedIngredients.length} ing · ${mergedRecipes.length} ric`);
-}
-
-async function importData(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    let addedI = 0, updatedI = 0, addedR = 0, updatedR = 0;
-
-    if (Array.isArray(data.ingredients)) {
-      for (const ing of data.ingredients) {
-        const exists = ingredients.find(x => x.id === ing.id);
-        await dbPut('ingredients', ing);
-        if (exists) { Object.assign(exists, ing); updatedI++; }
-        else        { ingredients.push(ing);      addedI++;   }
-      }
-    }
-    if (Array.isArray(data.recipes)) {
-      for (const r of data.recipes) {
-        const exists = recipes.find(x => x.id === r.id);
-        await dbPut('recipes', r);
-        if (exists) { Object.assign(exists, r); updatedR++; }
-        else        { recipes.push(r);          addedR++;   }
-      }
-    }
-    showToast(`+${addedI} ing, +${addedR} ric · aggiornati ${updatedI+updatedR}`);
-    renderBackup(document.getElementById('content'));
-  } catch (e) {
-    showToast('❌ Errore: file JSON non valido');
-  }
-  event.target.value = '';
 }
 
 // ── PWA MANIFEST ──────────────────────────────────────────────────────────
